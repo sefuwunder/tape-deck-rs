@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TAPE-DECK 16</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root{
+  --amber:#ffb000; --red:#ff2b1a; --grn:#39ff6a;
+  --ink:#0b0b10; --face:#232329; --face2:#1b1b21;
+  --cream:#f2ecd8; --tape:#2b1d12;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #2b2350 0%, transparent 60%),
+    radial-gradient(900px 500px at 50% 110%, #3a1030 0%, transparent 55%),
+    #0d0d14;
+  color:#e8e8ee; font-family:'VT323',monospace; font-size:20px;
+  min-height:100vh; display:flex; justify-content:center; padding:18px 12px 60px;
+}
+.scanlines{position:fixed;inset:0;pointer-events:none;z-index:99;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px);}
+.crt{position:fixed;inset:0;pointer-events:none;z-index:98;
+  background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.45) 100%);}
+.px{font-family:'Press Start 2P',monospace;}
+
+.cabinet{width:100%;max-width:460px;}
+.brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.brand h1{font-size:15px;margin:0;color:#fff;letter-spacing:1px;
+  text-shadow:2px 2px 0 #000, 0 0 12px rgba(255,176,0,.35);}
+.brand h1 .s16{color:var(--amber);}
+.brand .sub{font-size:9px;color:#8a8a96;margin-top:6px;letter-spacing:2px;}
+.power{display:flex;align-items:center;gap:8px;font-size:10px;color:#8a8a96;}
+
+.led{width:10px;height:10px;border-radius:50%;background:#3a1414;flex:none;
+  box-shadow:inset 1px 1px 2px #000, 0 0 0 2px #0a0a0c;}
+.led.on.red{background:var(--red);box-shadow:0 0 10px var(--red),0 0 3px #fff,0 0 0 2px #0a0a0c;}
+.led.on.green{background:var(--grn);box-shadow:0 0 10px var(--grn),0 0 0 2px #0a0a0c;}
+.led.on.amber{background:var(--amber);box-shadow:0 0 10px var(--amber),0 0 0 2px #0a0a0c;}
+.led.blink{animation:blink .7s steps(2) infinite;}
+@keyframes blink{50%{opacity:.25;}}
+
+.deck{
+  background:linear-gradient(#2e2e36,#222228);
+  border:4px solid #0a0a0c;border-radius:10px;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.09), inset -2px -2px 0 rgba(0,0,0,.55), 6px 6px 0 rgba(0,0,0,.5);
+  padding:14px;
+}
+/* ---------- cassette window ---------- */
+.cassette{
+  background:linear-gradient(#17171c,#101014);
+  border:3px solid #0a0a0c;border-radius:6px;
+  box-shadow:inset 0 0 24px #000, inset 2px 2px 0 rgba(255,255,255,.05);
+  padding:12px 12px 8px;position:relative;
+}
+.window{
+  background:linear-gradient(rgba(20,26,34,.92),rgba(12,15,20,.94));
+  border:3px solid #050507;border-radius:4px;
+  box-shadow:inset 0 0 18px #000;
+  height:118px;position:relative;overflow:hidden;
+}
+.reel{position:absolute;top:14px;width:86px;height:86px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #f4f0e2, #cfc9b4 70%);
+  box-shadow:0 0 0 3px #0a0a0c, inset 0 0 8px rgba(0,0,0,.35);}
+.reel.left{left:18px;} .reel.right{right:18px;}
+.reel .pack{position:absolute;border-radius:50%;background:radial-gradient(circle,#3a2417 0 58%,#1c120a 72%,#120c07 100%);
+  box-shadow:inset 0 0 6px #000;transition:transform .25s;}
+.reel.left .pack{inset:11px;} .reel.right .pack{inset:11px;}
+.reel .hub{position:absolute;inset:31px;border-radius:50%;
+  background:conic-gradient(#15151a 0 50deg,#e8e4d4 50deg 70deg,#15151a 70deg 170deg,#e8e4d4 170deg 190deg,#15151a 190deg 290deg,#e8e4d4 290deg 310deg,#15151a 310deg 360deg);
+  box-shadow:0 0 0 3px #15151a;}
+.reel.spin .hub{animation:spin 1.1s linear infinite;}
+.reel.spin .pack{animation:spin 1.1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.tape-line{position:absolute;left:96px;right:96px;top:88px;height:3px;background:#1c120a;
+  box-shadow:0 1px 0 rgba(255,255,255,.06);}
+.guide{position:absolute;top:80px;width:12px;height:12px;border-radius:50%;background:#0c0c10;
+  box-shadow:0 0 0 2px #2c2c34, inset 1px 1px 2px #000;}
+.guide.g1{left:104px;} .guide.g2{right:104px;}
+.screws{position:absolute;width:10px;height:10px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#55555e,#222228);
+  box-shadow:inset 1px 1px 2px #000;}
+.screws.s1{top:6px;left:6px;} .screws.s2{top:6px;right:6px;}
+.screws.s3{bottom:6px;left:6px;} .screws.s4{bottom:6px;right:6px;}
+.clabel{margin-top:10px;background:var(--cream);border:3px solid #0a0a0c;border-radius:3px;
+  padding:6px 10px;color:#2a2418;position:relative;}
+.clabel .side{position:absolute;top:4px;right:8px;font-family:'Press Start 2P';font-size:14px;color:#b09a5a;}
+.clabel .title{font-size:22px;line-height:1;min-height:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.clabel .title .cursor{display:inline-block;width:10px;background:#2a2418;animation:blink .8s steps(2) infinite;color:transparent;}
+.clabel .meta{display:flex;justify-content:space-between;font-size:16px;color:#6a5f43;margin-top:2px;}
+.clabel .stripes{height:6px;margin-top:4px;
+  background:repeating-linear-gradient(90deg,#c0392b 0 26px,#f2ecd8 26px 32px,#2980b9 32px 58px,#f2ecd8 58px 64px);}
+/* ---------- readouts ---------- */
+.readouts{display:flex;gap:10px;margin-top:12px;align-items:stretch;}
+.counter{background:#0a0a0c;border:3px solid #050507;border-radius:4px;
+  box-shadow:inset 0 0 12px #000;display:flex;align-items:center;padding:4px 8px;gap:2px;}
+.counter span{font-size:34px;color:#f4f4f8;background:linear-gradient(#2a2a30,#15151a);
+  padding:0 5px;border-radius:2px;box-shadow:inset 0 2px 3px #000;min-width:24px;text-align:center;}
+.counter .cdot{color:var(--amber);background:none;box-shadow:none;min-width:0;padding:0;}
+.vu{flex:1;background:linear-gradient(#f7f0da,#e8dcba);border:3px solid #0a0a0c;border-radius:4px;
+  position:relative;overflow:hidden;min-width:0;}
+.vu .ticks{position:absolute;inset:6px 8px auto 8px;height:20px;
+  background:repeating-linear-gradient(90deg,#5a4a33 0 2px,transparent 2px 12px);
+  -webkit-mask:radial-gradient(120px 60px at 50% 90%, transparent 62%, #000 63%);
+          mask:radial-gradient(120px 60px at 50% 90%, transparent 62%, #000 63%);}
+.vu .redzone{position:absolute;top:6px;right:10px;font-size:13px;color:#c0392b;font-family:'Press Start 2P';font-size:8px;}
+.vu .needle{position:absolute;bottom:6px;left:50%;width:3px;height:46px;background:#c0392b;
+  transform-origin:50% 100%;transform:rotate(-38deg);box-shadow:1px 0 2px rgba(0,0,0,.4);}
+.vu .vlab{position:absolute;bottom:2px;left:6px;font-family:'Press Start 2P';font-size:8px;color:#5a4a33;}
+/* ---------- url + transport ---------- */
+.urlrow{display:flex;gap:8px;margin-top:12px;}
+.urlrow input{flex:1;min-width:0;background:#0d0d12;border:3px solid #050507;border-radius:4px;
+  box-shadow:inset 0 0 10px #000;color:var(--amber);font-family:'VT323',monospace;font-size:20px;
+  padding:8px 10px;outline:none;}
+.urlrow input:focus{border-color:#4a3a10;}
+.urlrow input::placeholder{color:#5a4a20;}
+.abtn{font-family:'Press Start 2P';font-size:10px;color:#fff;cursor:pointer;user-select:none;
+  background:linear-gradient(#4e9a3e,#2c6b22);border:3px solid #0a0a0c;border-radius:4px;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.3), inset -2px -2px 0 rgba(0,0,0,.4), 3px 3px 0 #000;
+  padding:0 14px;}
+.abtn:active{transform:translate(2px,2px);box-shadow:inset 2px 2px 0 rgba(255,255,255,.3), inset -2px -2px 0 rgba(0,0,0,.4), 1px 1px 0 #000;}
+.modetabs{display:flex;gap:8px;margin-top:12px;}
+.mtab{flex:1;font-family:'Press Start 2P';font-size:9px;padding:10px 4px;cursor:pointer;color:#7a7a86;
+  background:#17171c;border:3px solid #0a0a0c;border-radius:4px;
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.08), 2px 2px 0 #000;letter-spacing:1px;}
+.mtab.sel{background:linear-gradient(#6a5a20,#4a3d12);color:var(--amber);
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.2), 2px 2px 0 #000;}
+.searchrow{display:flex;gap:8px;margin-top:0;}
+.searchrow input{flex:1;min-width:0;background:#0d0d12;border:3px solid #050507;border-radius:4px;
+  box-shadow:inset 0 0 10px #000;color:var(--amber);font-family:'VT323',monospace;font-size:20px;
+  padding:8px 10px;outline:none;}
+.searchrow input:focus{border-color:#4a3a10;}
+.searchrow input::placeholder{color:#5a4a20;}
+.jcard{margin-top:12px;background:var(--cream);border:3px solid #0a0a0c;border-radius:3px;
+  padding:10px 12px;color:#2a2418;box-shadow:3px 3px 0 rgba(0,0,0,.5);}
+.jcard .jh{font-family:'Press Start 2P';font-size:9px;color:#8a2be2;letter-spacing:1px;
+  border-bottom:2px solid #2a2418;padding-bottom:8px;margin-bottom:4px;
+  display:flex;justify-content:space-between;align-items:center;}
+.jcard .jh .x{cursor:pointer;color:#a03030;font-size:12px;padding:2px 6px;}
+.jcard ol{list-style:none;margin:6px 0 2px;padding:0;}
+.jcard li{display:flex;align-items:baseline;gap:8px;padding:7px 4px;cursor:pointer;
+  border-bottom:1px dotted #a89a72;font-size:20px;}
+.jcard li:last-child{border-bottom:none;}
+.jcard li:hover{background:rgba(138,43,226,.12);}
+.jcard li .n{font-family:'Press Start 2P';font-size:9px;color:#8a2be2;flex:none;}
+.jcard li .t{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.jcard li .go{font-family:'Press Start 2P';font-size:8px;color:#2c6b22;flex:none;}
+.jcard .jfoot{font-size:15px;color:#6a5f43;margin-top:6px;text-align:center;}
+.transport{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px;}
+.tbtn{font-family:'Press Start 2P';font-size:11px;color:#eee;cursor:pointer;user-select:none;
+  background:linear-gradient(#55555e,#33333a);border:3px solid #0a0a0c;border-radius:6px;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.28), inset -2px -2px 0 rgba(0,0,0,.5), 4px 4px 0 #000;
+  padding:13px 4px;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.tbtn .g{font-size:15px;line-height:1;}
+.tbtn .k{font-size:7px;color:#b9b9c4;}
+.tbtn:active,.tbtn.held{transform:translate(2px,2px);
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.28), inset -2px -2px 0 rgba(0,0,0,.5), 2px 2px 0 #000;}
+.tbtn.rec{background:linear-gradient(#b03030,#701818);}
+.tbtn:disabled{opacity:.35;cursor:default;transform:none;}
+.tbtn .led{width:8px;height:8px;}
+.typerow{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:10px;color:#9a9aa6;}
+.ttype{display:flex;gap:6px;flex:1;}
+.tt{flex:1;text-align:center;font-family:'Press Start 2P';font-size:8px;padding:9px 2px;cursor:pointer;
+  background:#17171c;border:3px solid #0a0a0c;border-radius:4px;color:#7a7a86;
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.08), 2px 2px 0 #000;}
+.tt.sel{background:linear-gradient(#6a5a20,#4a3d12);color:var(--amber);
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.2), 2px 2px 0 #000;}
+.tt small{display:block;font-size:7px;margin-top:4px;color:inherit;opacity:.75;font-family:'VT323';font-size:13px;}
+.status{margin-top:12px;background:#0a0a0c;border:3px solid #050507;border-radius:4px;
+  box-shadow:inset 0 0 12px #000;padding:8px 12px;font-size:21px;color:var(--amber);
+  min-height:44px;text-shadow:0 0 6px rgba(255,176,0,.5);}
+/* ---------- shelf ---------- */
+.shelf{margin-top:16px;}
+.shelf h2{font-size:11px;color:#fff;letter-spacing:1px;text-shadow:2px 2px 0 #000;margin:0 0 10px;}
+.shelf h2 .n{color:var(--amber);}
+.tape{background:linear-gradient(#2e2e36,#222228);border:3px solid #0a0a0c;border-radius:6px;
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.08), 3px 3px 0 rgba(0,0,0,.5);
+  padding:10px;margin-bottom:10px;}
+.tape .t-top{display:flex;gap:10px;align-items:center;}
+.tape .mini{width:64px;height:40px;flex:none;background:linear-gradient(rgba(20,26,34,.95),rgba(12,15,20,.95));
+  border:2px solid #050507;border-radius:3px;position:relative;box-shadow:inset 0 0 8px #000;}
+.tape .mini::before,.tape .mini::after{content:"";position:absolute;top:8px;width:22px;height:22px;border-radius:50%;
+  background:radial-gradient(circle,#3a2417 0 55%,#e8e4d4 56% 68%,#e8e4d4 100%);}
+.tape .mini::before{left:6px;} .tape .mini::after{right:6px;}
+.tape .t-info{flex:1;min-width:0;}
+.tape .t-name{font-size:19px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tape .t-meta{font-size:15px;color:#8a8a96;}
+.tape .t-btns{display:flex;gap:6px;margin-top:8px;}
+.sbtn{flex:1;font-family:'Press Start 2P';font-size:8px;padding:9px 4px;cursor:pointer;color:#eee;
+  background:linear-gradient(#4a4a55,#2c2c33);border:2px solid #0a0a0c;border-radius:4px;
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.2), 2px 2px 0 #000;}
+.sbtn:active{transform:translate(1px,1px);box-shadow:inset 1px 1px 0 rgba(255,255,255,.2),1px 1px 0 #000;}
+.sbtn.go{background:linear-gradient(#4e9a3e,#2c6b22);}
+.sbtn.danger{background:linear-gradient(#8a3030,#5c1a1a);}
+.empty{color:#5a5a66;font-size:18px;text-align:center;padding:18px;border:2px dashed #33333a;border-radius:6px;}
+.foot{margin-top:14px;text-align:center;font-size:10px;color:#5a5a66;letter-spacing:1px;}
+.blink-prompt{animation:blink 1.2s steps(2) infinite;}
+@media (max-width:380px){ .reel{width:72px;height:72px;} .reel .hub{inset:25px;} }
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<div class="crt"></div>
+<div class="cabinet">
+  <div class="brand">
+    <div>
+      <h1>TAPE-DECK <span class="s16">16</span></h1>
+      <div class="sub px">HI-FI STEREO &middot; YT-9000</div>
+    </div>
+    <div class="power"><span class="px">PWR</span><div class="led green on" id="pwrLed"></div></div>
+  </div>
+
+  <div class="deck">
+    <div class="cassette">
+      <div class="screws s1"></div><div class="screws s2"></div>
+      <div class="screws s3"></div><div class="screws s4"></div>
+      <div class="window">
+        <div class="reel left" id="reelL"><div class="pack" id="packL"></div><div class="hub"></div></div>
+        <div class="reel right" id="reelR"><div class="pack" id="packR"></div><div class="hub"></div></div>
+        <div class="tape-line"></div>
+        <div class="guide g1"></div><div class="guide g2"></div>
+      </div>
+      <div class="clabel">
+        <div class="side">A</div>
+        <div class="title" id="labelTitle"><span class="blink-prompt">INSERT URL &#9646;</span></div>
+        <div class="meta"><span id="labelSub">NO TAPE</span><span id="labelDur"></span></div>
+        <div class="stripes"></div>
+      </div>
+    </div>
+
+    <div class="readouts">
+      <div class="counter" id="counter">
+        <span>0</span><span>0</span><span>0</span><span>0</span>
+      </div>
+      <div class="vu"><div class="ticks"></div><div class="redzone">+3</div>
+        <div class="needle" id="needleL"></div><div class="vlab">L</div></div>
+      <div class="vu"><div class="ticks"></div><div class="redzone">+3</div>
+        <div class="needle" id="needleR"></div><div class="vlab">R</div></div>
+    </div>
+
+    <div class="modetabs">
+      <button class="mtab sel" id="tabUrl">URL</button>
+      <button class="mtab" id="tabSearch">SEARCH</button>
+    </div>
+
+    <div class="urlrow" id="urlRow" style="margin-top:12px;">
+      <input id="urlInput" type="url" placeholder="paste youtube url..." autocomplete="off" spellcheck="false">
+      <button class="abtn px" id="loadBtn">LOAD</button>
+    </div>
+
+    <div class="searchrow" id="searchRow" style="margin-top:12px;display:none;">
+      <input id="artistInput" placeholder="artist..." autocomplete="off" spellcheck="false">
+      <input id="titleInput" placeholder="song title..." autocomplete="off" spellcheck="false">
+      <button class="abtn px" id="searchBtn">TUNE</button>
+    </div>
+
+    <div class="jcard" id="jcard" style="display:none;">
+      <div class="jh"><span>TRACK LISTING</span><span class="x" id="jcardX">&#10005;</span></div>
+      <ol id="trackList"></ol>
+      <div class="jfoot">pick a track to dub it to tape</div>
+    </div>
+
+    <div class="transport">
+      <button class="tbtn" id="btnRew"><span class="g">&#9664;&#9664;</span><span class="k px">REW</span></button>
+      <button class="tbtn" id="btnPlay"><span class="g">&#9654;</span><span class="k px">PLAY</span></button>
+      <button class="tbtn" id="btnStop"><span class="g">&#9632;</span><span class="k px">STOP</span></button>
+      <button class="tbtn" id="btnFf"><span class="g">&#9654;&#9654;</span><span class="k px">FF</span></button>
+      <button class="tbtn rec" id="btnRec"><span class="g">&#9679;</span><span class="k px">REC</span><div class="led red" id="recLed"></div></button>
+    </div>
+
+    <div class="typerow">
+      <span class="px">TAPE</span>
+      <div class="ttype">
+        <div class="tt sel" data-f="mp3">I<small>MP3 192k</small></div>
+        <div class="tt" data-f="m4a">II<small>M4A 256k</small></div>
+        <div class="tt" data-f="flac">METAL<small>FLAC</small></div>
+      </div>
+    </div>
+
+    <div class="status" id="statusLine">&gt; READY</div>
+  </div>
+
+  <div class="shelf">
+    <h2 class="px">TAPE SHELF <span class="n" id="shelfCount"></span></h2>
+    <div id="tapeList"></div>
+  </div>
+
+  <div class="foot px">yt-dlp inside &middot; 16-BIT HI-FI &middot; DOLBY-ish</div>
+</div>
+<audio id="player" preload="metadata"></audio>
+<script>
+(() => {
+"use strict";
+const $ = (id) => document.getElementById(id);
+const api = {
+  async post(path, body) {
+    const r = await fetch(path, { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}) });
+    return r.json();
+  },
+  async get(path) { return (await fetch(path)).json(); },
+  async del(path) {
+    const r = await fetch(path, { method: "DELETE" });
+    return r.json();
+  },
+};
+
+// ---------- state ----------
+const S = {
+  mode: "idle",          // idle|loading|ready|recording|playing|paused
+  jobId: null, poll: null,
+  tape: null,            // {title,duration,filename,url}
+  format: "mp3",
+  progress: 0,
+};
+const audio = $("player");
+let actx = null, analyser = null, freq = null;
+let vuL = 0, vuR = 0;
+
+// ---------- readouts ----------
+const digits = [...$("counter").querySelectorAll("span")];
+function setCounter(n) {
+  const s = String(Math.max(0, Math.min(9999, Math.floor(n)))).padStart(4, "0");
+  digits.forEach((d, i) => { d.textContent = s[i]; });
+}
+function spin(on) {
+  $("reelL").classList.toggle("spin", on);
+  $("reelR").classList.toggle("spin", on);
+}
+function setPacks(p) { // p: 0..1 tape moved left->right
+  $("packL").style.transform = `scale(${1 - 0.55 * p})`;
+  $("packR").style.transform = `scale(${0.45 + 0.55 * p})`;
+}
+setPacks(0);
+function status(t) { $("statusLine").innerHTML = "&gt; " + t; $("statusLine").removeAttribute("title"); }
+function statusErr(t) {
+  $("statusLine").innerHTML = "&gt; ERR: " + t;
+  $("statusLine").title = t;
+}
+function recLed(mode) { // off|blink|on
+  const l = $("recLed");
+  l.classList.remove("on", "blink");
+  if (mode === "on") l.classList.add("on");
+  if (mode === "blink") { l.classList.add("on", "blink"); }
+}
+function refreshButtons() {
+  $("btnRec").disabled = !(S.mode === "ready" || S.mode === "done");
+  $("btnPlay").disabled = !(S.tape && (S.mode === "ready" || S.mode === "done" || S.mode === "paused"));
+  $("btnStop").disabled = !(S.mode === "recording" || S.mode === "playing" || S.mode === "paused");
+  const seekable = S.mode === "playing" || S.mode === "paused";
+  $("btnRew").disabled = !seekable;
+  $("btnFf").disabled = !seekable;
+}
+refreshButtons();
+
+// ---------- label typing ----------
+let typeTimer = null;
+function typeLabel(text) {
+  clearInterval(typeTimer);
+  const el = $("labelTitle");
+  el.innerHTML = "";
+  let i = 0;
+  typeTimer = setInterval(() => {
+    i++;
+    el.textContent = text.slice(0, i);
+    if (i >= text.length) {
+      clearInterval(typeTimer);
+      el.innerHTML = el.textContent.replace(/</g, "&lt;") +
+        '<span class="cursor">_</span>';
+    }
+  }, 18);
+}
+
+// ---------- VU meters ----------
+function ensureAudio() {
+  if (actx) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  actx = new AC();
+  const src = actx.createMediaElementSource(audio);
+  analyser = actx.createAnalyser();
+  analyser.fftSize = 256;
+  analyser.smoothingTimeConstant = 0.75;
+  src.connect(analyser);
+  analyser.connect(actx.destination);
+  freq = new Uint8Array(analyser.frequencyBinCount);
+}
+function avg(a, b) {
+  let s = 0, n = 0;
+  for (let i = a; i < b && i < freq.length; i++) { s += freq[i]; n++; }
+  return n ? s / n / 255 : 0;
+}
+function tick() {
+  let l = 0, r = 0;
+  if ((S.mode === "playing") && analyser && !audio.paused) {
+    analyser.getByteFrequencyData(freq);
+    l = Math.min(1, avg(2, 30) * 1.6);
+    r = Math.min(1, avg(30, 90) * 1.6);
+  } else if (S.mode === "recording") {
+    l = 0.35 + Math.random() * 0.55;
+    r = 0.35 + Math.random() * 0.55;
+  }
+  vuL += (l - vuL) * 0.35;
+  vuR += (r - vuR) * 0.35;
+  $("needleL").style.transform = `rotate(${-38 + vuL * 76}deg)`;
+  $("needleR").style.transform = `rotate(${-38 + vuR * 76}deg)`;
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+// ---------- mode tabs ----------
+$("tabUrl").addEventListener("click", () => setMode("url"));
+$("tabSearch").addEventListener("click", () => setMode("search"));
+function setMode(m) {
+  $("tabUrl").classList.toggle("sel", m === "url");
+  $("tabSearch").classList.toggle("sel", m === "search");
+  $("urlRow").style.display = m === "url" ? "" : "none";
+  $("searchRow").style.display = m === "search" ? "flex" : "none";
+  if (m === "search") $("artistInput").focus();
+}
+
+// ---------- search ----------
+$("searchBtn").addEventListener("click", doSearch);
+$("titleInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") doSearch();
+});
+$("artistInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") doSearch();
+});
+$("jcardX").addEventListener("click", () => { $("jcard").style.display = "none"; });
+
+async function doSearch() {
+  const artist = $("artistInput").value.trim();
+  const title = $("titleInput").value.trim();
+  if (!artist && !title) { status("TYPE AN ARTIST OR TITLE"); return; }
+  if (S.mode === "recording") return;
+  status("TUNING...");
+  $("searchBtn").disabled = true;
+  try {
+    const r = await api.post("/api/search", { artist, title });
+    if (!r.ok) throw new Error(r.error || "search failed");
+    renderTracks(r.results || []);
+    if (!(r.results || []).length) status("NO STATIONS FOUND");
+    else status(`FOUND ${(r.results || []).length} TRACKS`);
+  } catch (e) {
+    status("ERR: " + String(e.message || e).toUpperCase().slice(0, 36));
+  }
+  $("searchBtn").disabled = false;
+}
+
+function renderTracks(results) {
+  const box = $("jcard");
+  const ol = $("trackList");
+  ol.innerHTML = "";
+  results.forEach((t, i) => {
+    const li = document.createElement("li");
+    const num = String(i + 1).padStart(2, "0");
+    li.innerHTML = `<span class="n">${num}</span><span class="t"></span><span class="go">&#9654;</span>`;
+    li.querySelector(".t").textContent = t.title;
+    li.title = t.title;
+    li.addEventListener("click", () => {
+      box.style.display = "none";
+      $("urlInput").value = t.url;
+      setMode("url");
+      loadInfo();
+    });
+    ol.appendChild(li);
+  });
+  box.style.display = results.length ? "" : "none";
+}
+
+// ---------- info / load ----------
+let infoTimer = null;
+$("urlInput").addEventListener("input", () => {
+  clearTimeout(infoTimer);
+  infoTimer = setTimeout(() => loadInfo(), 650);
+});
+$("loadBtn").addEventListener("click", loadInfo);
+
+async function loadInfo() {
+  const url = $("urlInput").value.trim();
+  if (!url) return;
+  if (S.mode === "recording") return;
+  S.mode = "loading";
+  status("READING TAPE LABEL...");
+  refreshButtons();
+  try {
+    const r = await api.post("/api/info", { url });
+    if (!r.ok) throw new Error(r.error || "no info");
+    S.tape = { title: r.title, duration: r.duration, filename: null, url };
+    S.mode = "ready";
+    S.progress = 0;
+    setPacks(0); setCounter(0);
+    typeLabel(r.title.toUpperCase().slice(0, 60));
+    $("labelSub").textContent = "SIDE A";
+    $("labelDur").textContent = r.duration || "";
+    status("TAPE LOADED — PRESS REC");
+    recLed("blink");
+  } catch (e) {
+    S.mode = "idle";
+    status("ERR: " + String(e.message || e).toUpperCase().slice(0, 40));
+    recLed("off");
+  }
+  refreshButtons();
+}
+
+// ---------- record (download) ----------
+$("btnRec").addEventListener("click", async () => {
+  if (!(S.mode === "ready" || S.mode === "done") || !S.tape) return;
+  stopAudio();
+  const r = await api.post("/api/download",
+    { url: S.tape.url, format: S.format });
+  if (!r.ok) { status("ERR: " + String(r.error).toUpperCase()); return; }
+  S.mode = "recording";
+  S.jobId = r.jobId;
+  S.progress = 0;
+  setPacks(0); setCounter(0);
+  spin(true); recLed("on");
+  status("&#9679; REC " + (r.title || "").toUpperCase().slice(0, 28));
+  refreshButtons();
+  clearInterval(S.poll);
+  S.poll = setInterval(pollJob, 600);
+});
+
+async function pollJob() {
+  if (!S.jobId) return;
+  try {
+    const j = await api.get("/api/jobs/" + S.jobId);
+    if (!j.ok) throw new Error("job lost");
+    S.progress = j.progress / 100;
+    setPacks(S.progress);
+    setCounter(j.progress * 99.99);
+    status(`&#9679; REC ${String(j.progress).padStart(3, " ")}% — ${j.phase.toUpperCase()}`);
+    if (j.status === "done") {
+      clearInterval(S.poll);
+      S.mode = "done";
+      S.tape.filename = j.filename;
+      S.tape.title = j.title || S.tape.title;
+      spin(false); recLed("off");
+      setCounter(0); setPacks(0);
+      status("TAPE READY — PRESS PLAY");
+      loadToDeck(S.tape.filename);
+      refreshShelf();
+    } else if (j.status === "error") {
+      clearInterval(S.poll);
+      S.mode = "ready";
+      spin(false); recLed("blink");
+      statusErr(String(j.error || "unknown error").toUpperCase().slice(0, 120));
+    }
+  } catch (e) {
+    clearInterval(S.poll);
+    S.mode = "ready";
+    spin(false); recLed("blink");
+    status("ERR: JOB LOST");
+  }
+  refreshButtons();
+}
+
+// ---------- transport ----------
+function stopAudio() {
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.load();
+}
+function loadToDeck(filename) {
+  if (!filename) return;
+  audio.src = "/api/tapes/" + encodeURIComponent(filename);
+  audio.load();
+}
+$("btnPlay").addEventListener("click", () => {
+  if (!S.tape || !S.tape.filename) return;
+  if (S.mode === "recording") return;
+  ensureAudio();
+  if (actx && actx.state === "suspended") actx.resume();
+  loadToDeck(S.tape.filename);
+  audio.play().then(() => {
+    S.mode = "playing";
+    spin(true);
+    status("&#9654; PLAY " + (S.tape.title || "").toUpperCase().slice(0, 28));
+    refreshButtons();
+  }).catch(() => status("ERR: PLAY FAILED"));
+});
+$("btnStop").addEventListener("click", async () => {
+  if (S.mode === "recording" && S.jobId) {
+    await api.post(`/api/jobs/${S.jobId}/cancel`, {});
+    clearInterval(S.poll);
+    S.mode = "ready";
+    spin(false); recLed("blink");
+    status("STOPPED — TAPE KEPT");
+  } else {
+    stopAudio();
+    S.mode = S.tape && S.tape.filename ? "done" : S.mode === "playing" ? "ready" : S.mode;
+    if (S.mode === "playing") S.mode = "paused";
+    spin(false);
+    status("STOPPED");
+  }
+  refreshButtons();
+});
+$("btnRew").addEventListener("click", () => {
+  if (!isFinite(audio.duration)) return;
+  audio.currentTime = Math.max(0, audio.currentTime - 10);
+});
+$("btnFf").addEventListener("click", () => {
+  if (!isFinite(audio.duration)) return;
+  audio.currentTime = Math.min(audio.duration, audio.currentTime + 10);
+});
+audio.addEventListener("timeupdate", () => {
+  if (S.mode === "playing" && audio.duration) {
+    const p = audio.currentTime / audio.duration;
+    setPacks(p);
+    setCounter(p * 9999);
+    const t = fmt(audio.currentTime) + " / " + fmt(audio.duration);
+    status("&#9654; PLAY " + t);
+  }
+});
+audio.addEventListener("ended", () => {
+  S.mode = "done";
+  spin(false);
+  setPacks(0); setCounter(0);
+  status("TAPE ENDED — REWIND?");
+  refreshButtons();
+});
+function fmt(s) {
+  s = Math.floor(s);
+  return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+}
+
+// ---------- tape type ----------
+document.querySelectorAll(".tt").forEach((el) => {
+  el.addEventListener("click", () => {
+    document.querySelectorAll(".tt").forEach((x) => x.classList.remove("sel"));
+    el.classList.add("sel");
+    S.format = el.dataset.f;
+    status("TAPE TYPE: " + el.textContent.trim().split("\n")[0]);
+  });
+});
+
+// ---------- shelf ----------
+function fmtSize(b) {
+  if (b > 1048576) return (b / 1048576).toFixed(1) + " MB";
+  return Math.max(1, Math.round(b / 1024)) + " KB";
+}
+async function refreshShelf() {
+  const box = $("tapeList");
+  try {
+    const r = await api.get("/api/tapes");
+    const tapes = (r.ok && r.tapes) || [];
+    $("shelfCount").textContent = tapes.length ? `(${tapes.length})` : "";
+    if (!tapes.length) {
+      box.innerHTML = '<div class="empty">shelf is empty — record something</div>';
+      return;
+    }
+    box.innerHTML = "";
+    tapes.forEach((t) => {
+      const d = document.createElement("div");
+      d.className = "tape";
+      const short = t.name.length > 34 ? t.name.slice(0, 33) + "…" : t.name;
+      d.innerHTML =
+        `<div class="t-top"><div class="mini"></div>` +
+        `<div class="t-info"><div class="t-name"></div>` +
+        `<div class="t-meta">${fmtSize(t.size)}</div></div></div>` +
+        `<div class="t-btns"><button class="sbtn go px" data-a="load">LOAD</button>` +
+        `<button class="sbtn px" data-a="dl">EJECT &#8681;</button>` +
+        `<button class="sbtn danger px" data-a="del">DEL</button></div>`;
+      d.querySelector(".t-name").textContent = short;
+      d.querySelector('[data-a="load"]').addEventListener("click", () => {
+        stopAudio();
+        S.tape = { title: t.name, duration: "", filename: t.name, url: "" };
+        S.mode = "done";
+        typeLabel(t.name.toUpperCase().slice(0, 60));
+        $("labelSub").textContent = "SIDE A";
+        $("labelDur").textContent = "";
+        loadToDeck(t.name);
+        status("TAPE LOADED — PRESS PLAY");
+        recLed("off");
+        refreshButtons();
+      });
+      d.querySelector('[data-a="dl"]').addEventListener("click", () => {
+        window.location.href = "/api/tapes/" + encodeURIComponent(t.name) + "?dl=1";
+      });
+      d.querySelector('[data-a="del"]').addEventListener("click", async () => {
+        await api.del("/api/tapes/" + encodeURIComponent(t.name));
+        refreshShelf();
+      });
+      box.appendChild(d);
+    });
+  } catch (e) {
+    box.innerHTML = '<div class="empty">shelf unreachable</div>';
+  }
+}
+refreshShelf();
+api.get("/api/health").then((h) => {
+  if (h && h.ok && !h.ytDlp) statusErr("YT-DLP NOT FOUND ON SERVER — INSTALL IT");
+  else if (h && h.ok && !h.ffmpeg) status("WARN: FFMPEG MISSING — MP3/FLAC MAY FAIL");
+}).catch(() => {});
+})();
+</script>
+</body>
+</html>
